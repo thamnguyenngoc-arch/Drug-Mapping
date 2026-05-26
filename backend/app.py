@@ -7,16 +7,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
+from pathlib import Path
+
 import pandas as pd
 import io
 
 from backend.mapper import run_mapping
 
-app = FastAPI()
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-# =========================
-# CORS
-# =========================
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -26,19 +26,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =========================
-# FRONTEND
-# =========================
-
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
+app.mount(
+    "/static",
+    StaticFiles(directory=BASE_DIR / "frontend"),
+    name="static"
+)
 
 @app.get("/")
 def home():
-    return FileResponse("frontend/index.html")
-
-# =========================
-# GET COLUMNS
-# =========================
+    return FileResponse(BASE_DIR / "frontend" / "index.html")
 
 @app.post("/columns")
 async def get_columns(file: UploadFile = File(...)):
@@ -50,10 +46,6 @@ async def get_columns(file: UploadFile = File(...)):
     return {
         "columns": list(df.columns)
     }
-
-# =========================
-# MAP
-# =========================
 
 @app.post("/map")
 async def map_products(
