@@ -14,7 +14,7 @@ from backend.utils import (
     main_token
 )
 
-from config import MATCH_CONFIG
+from backend.config import MATCH_CONFIG
 
 # =========================
 # CACHE
