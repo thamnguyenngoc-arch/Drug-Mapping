@@ -7,7 +7,7 @@ import pandas as pd
 from rapidfuzz import fuzz
 from functools import lru_cache
 
-from utils import (
+from backend.utils import (
     normalize,
     extract_volume,
     remove_volume,
