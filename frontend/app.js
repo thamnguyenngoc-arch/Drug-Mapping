@@ -266,13 +266,10 @@ async function loadColumns(file, type) {
 
   formData.append("file", file);
 
-  const response = await fetch(
-    "http://127.0.0.1:8000/columns",
-    {
-      method: "POST",
-      body: formData
-    }
-  );
+  const response = await fetch("/columns", {
+    method: "POST",
+    body: formData
+  });
 
   const data = await response.json();
 
@@ -432,16 +429,10 @@ async function runMapping() {
     // API CALL
     // ================================
 
-    const response = await fetch(
-
-      "http://localhost:8000/map",
-
-      {
+    const response = await fetch("/map", {
         method: "POST",
         body: formData
-      }
-
-    );
+    });
 
     if (!response.ok) {
 
