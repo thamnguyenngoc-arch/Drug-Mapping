@@ -185,7 +185,8 @@ const gridOptions = {
 const gridDiv =
   document.querySelector("#myGrid");
 
-new agGrid.Grid(gridDiv, gridOptions);
+const gridApi =
+  agGrid.createGrid(gridDiv, gridOptions);
 
 // ====================================
 // ADD MAPPING ROW
@@ -447,7 +448,7 @@ async function runMapping() {
     // UPDATE GRID
     // ================================
 
-    gridOptions.api.setRowData(data);
+    gridApi.setGridOption("rowData", data);
 
     // ================================
     // UPDATE SUMMARY
