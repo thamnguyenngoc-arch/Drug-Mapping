@@ -7,346 +7,158 @@ import pandas as pd
 from rapidfuzz import fuzz
 from functools import lru_cache
 
-from backend.utils import (
-    normalize,
-    extract_volume,
-    remove_volume,
-    main_token
-)
+from backend.utils import normalize
 
-from backend.config import MATCH_CONFIG
-
-# =========================
-# CACHE
-# =========================
 
 @lru_cache(maxsize=200000)
 def cached_ratio(a, b):
     return fuzz.ratio(str(a), str(b))
 
 
-@lru_cache(maxsize=200000)
-def cached_partial(a, b):
-    return fuzz.partial_ratio(str(a), str(b))
+THRESHOLD_MATCH = 90
+THRESHOLD_REVIEW = 70
 
 
-# =========================
-# SAFE COLUMN
-# =========================
+def safe_str(value):
 
-def safe_col(df, col_name):
+    if pd.isna(value):
+        return ""
 
-    if col_name not in df.columns:
-        return pd.Series([""] * len(df))
-
-    return df[col_name].fillna("").astype(str)
+    return str(value)
 
 
-# =========================
-# MAIN MAPPING FUNCTION
-# =========================
+def run_mapping(
+    df_a,
+    df_b,
+    mapping_config,
+    export_columns
+):
 
-def run_mapping(df_a, df_b):
+    df_a = df_a.copy()
+    df_b = df_b.copy()
 
-    try:
+    df_a = df_a.fillna("")
+    df_b = df_b.fillna("")
 
-        # =====================
-        # EMPTY CHECK
-        # =====================
+    results = []
 
-        if df_a.empty:
-            raise Exception("File A is empty")
+    df_b_records = df_b.to_dict("records")
 
-        if df_b.empty:
-            raise Exception("File B is empty")
+    for _, row_a in df_a.iterrows():
 
-        # =====================
-        # PREPARE DATA
-        # =====================
+        best_score = -1
+        best_row = None
 
-        df_a = df_a.copy()
-        df_b = df_b.copy()
+        # =========================
+        # FIND BEST MATCH
+        # =========================
 
-        # ---------- DF A ----------
+        for row_b in df_b_records:
 
-        df_a["clean_name"] = (
-            safe_col(df_a, "Market Name cleaned")
-            .apply(normalize)
-        )
+            final_score = 0
 
-        df_a["volume"] = (
-            safe_col(df_a, "Packaging")
-            .apply(extract_volume)
-        )
+            for mapping in mapping_config:
 
-        df_a["main"] = (
-            df_a["clean_name"]
-            .apply(remove_volume)
-        )
+                source_col = mapping["source"]
+                target_col = mapping["target"]
+                weight = float(mapping["weight"])
 
-        df_a["unit_clean"] = (
-            safe_col(df_a, "Unit (Source)")
-            .apply(normalize)
-        )
-
-        # ---------- DF B ----------
-
-        df_b["clean_name"] = (
-            safe_col(df_b, "product_name")
-            .apply(normalize)
-        )
-
-        df_b["volume"] = (
-            safe_col(df_b, "volumes")
-            .apply(normalize)
-        )
-
-        df_b["main"] = (
-            df_b["clean_name"]
-            .apply(remove_volume)
-        )
-
-        df_b["unit_clean"] = (
-            safe_col(df_b, "unit")
-            .apply(normalize)
-        )
-
-        # =====================
-        # BLOCKING
-        # =====================
-
-        df_a["token"] = (
-            df_a["main"]
-            .apply(main_token)
-        )
-
-        df_b["token"] = (
-            df_b["main"]
-            .apply(main_token)
-        )
-
-        df_b_records = (
-            df_b.to_dict("records")
-        )
-
-        block_index = {}
-
-        for row in df_b_records:
-
-            tok = row.get("token", "")
-
-            block_index.setdefault(tok, []).append(row)
-
-        # =====================
-        # MATCHING
-        # =====================
-
-        results = []
-
-        for row_a in df_a.to_dict("records"):
-
-            token = row_a.get("token", "")
-
-            subset = (
-                block_index.get(token)
-                or df_b_records
-            )
-
-            # =================
-            # QUICK FILTER
-            # =================
-
-            filtered_subset = []
-
-            for row_b in subset:
-
-                score_quick = cached_partial(
-                    str(row_a.get("main", "")),
-                    str(row_b.get("main", ""))
+                value_a = normalize(
+                    safe_str(row_a.get(source_col, ""))
                 )
 
-                if (
-                    score_quick >=
-                    MATCH_CONFIG["quick_threshold"]
-                ):
-                    filtered_subset.append(row_b)
-
-            if filtered_subset:
-                subset = filtered_subset
-
-            # =================
-            # BEST MATCH
-            # =================
-
-            best_score = 0
-            best_row = None
-
-            for row_b in subset:
-
-                score_name = cached_ratio(
-                    str(row_a.get("main", "")),
-                    str(row_b.get("main", ""))
+                value_b = normalize(
+                    safe_str(row_b.get(target_col, ""))
                 )
 
-                if (
-                    score_name <
-                    MATCH_CONFIG["name_threshold"]
-                ):
-                    continue
+                score = cached_ratio(value_a, value_b)
 
-                # =================
-                # UNIT
-                # =================
+                final_score += score * weight
 
-                if (
-                    row_a.get("unit_clean")
-                    and
-                    row_b.get("unit_clean")
-                ):
+            if final_score > best_score:
 
-                    score_unit = cached_ratio(
-                        str(row_a["unit_clean"]),
-                        str(row_b["unit_clean"])
-                    )
+                best_score = final_score
+                best_row = row_b
 
-                else:
+        # =========================
+        # BUILD RESULT ROW
+        # =========================
 
-                    score_unit = 0
+        result_row = {}
 
-                # =================
-                # VOLUME
-                # =================
+        # -------------------------
+        # SOURCE EXPORT COLUMNS
+        # -------------------------
 
-                if (
-                    row_a.get("volume")
-                    and
-                    row_b.get("volume")
-                ):
+        for col in export_columns.get("source", []):
 
-                    score_volume = cached_ratio(
-                        str(row_a["volume"]),
-                        str(row_b["volume"])
-                    )
+            result_row[f"source_{col}"] = row_a.get(col, "")
 
-                else:
+        # -------------------------
+        # TARGET EXPORT COLUMNS
+        # -------------------------
 
-                    score_volume = 0
+        if best_row:
 
-                # =================
-                # FINAL SCORE
-                # =================
+            for col in export_columns.get("target", []):
 
-                final_score = (
+                result_row[f"target_{col}"] = best_row.get(col, "")
 
-                    MATCH_CONFIG["weights"]["name"]
-                    * score_name
+        # -------------------------
+        # MAPPING PREVIEW
+        # -------------------------
 
-                    +
+        preview_parts = []
 
-                    MATCH_CONFIG["weights"]["unit"]
-                    * score_unit
+        if best_row:
 
-                    +
+            for mapping in mapping_config:
 
-                    MATCH_CONFIG["weights"]["volume"]
-                    * score_volume
+                source_col = mapping["source"]
+                target_col = mapping["target"]
 
+                source_value = safe_str(
+                    row_a.get(source_col, "")
                 )
 
-                # =================
-                # BONUS
-                # =================
+                target_value = safe_str(
+                    best_row.get(target_col, "")
+                )
 
-                if (
-                    row_a.get("unit_clean")
-                    and
-                    row_a.get("unit_clean")
-                    ==
-                    row_b.get("unit_clean")
-                ):
+                preview_parts.append(
+                    f"{source_col}: {source_value} ↔ {target_col}: {target_value}"
+                )
 
-                    final_score += (
-                        MATCH_CONFIG["bonus"]["exact_unit"]
-                    )
+        result_row["mapping_preview"] = " | ".join(preview_parts)
 
-                if (
-                    row_a.get("volume")
-                    and
-                    row_a.get("volume")
-                    ==
-                    row_b.get("volume")
-                ):
+        # -------------------------
+        # SCORE
+        # -------------------------
 
-                    final_score += (
-                        MATCH_CONFIG["bonus"]["exact_volume"]
-                    )
+        result_row["score"] = round(best_score, 2)
 
-                # =================
-                # BEST MATCH
-                # =================
+        # -------------------------
+        # STATUS
+        # -------------------------
 
-                if final_score > best_score:
+        if best_score >= THRESHOLD_MATCH:
 
-                    best_score = final_score
-                    best_row = row_b
+            status = "Matched"
 
-            # =================
-            # STATUS
-            # =================
+        elif best_score >= THRESHOLD_REVIEW:
 
-            if best_score >= 95:
+            status = "Review"
 
-                status = "Matched"
+        else:
 
-            elif best_score >= 80:
+            status = "Unmatched"
 
-                status = "Review"
+        result_row["status"] = status
 
-            else:
+        # -------------------------
+        # APPEND
+        # -------------------------
 
-                status = "Unmatched"
+        results.append(result_row)
 
-            # =================
-            # RESULT
-            # =================
-
-            result = {
-
-                "source_name":
-                    row_a.get("Market Name", ""),
-
-                "matched_name":
-                    (
-                        best_row.get("product_name", "")
-                        if best_row
-                        else ""
-                    ),
-
-                "score":
-                    round(float(best_score), 2),
-
-                "brand":
-                    "",
-
-                "unit":
-                    (
-                        best_row.get("unit", "")
-                        if best_row
-                        else ""
-                    ),
-
-                "status":
-                    status
-
-            }
-
-            results.append(result)
-
-        return pd.DataFrame(results)
-
-    except Exception as e:
-
-        print("MAPPING ERROR:")
-        print(str(e))
-
-        raise e
+    return pd.DataFrame(results)

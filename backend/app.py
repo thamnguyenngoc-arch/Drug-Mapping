@@ -2,7 +2,7 @@
 # app.py
 # =========================
 
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pandas as pd
 import io
+import json
 
 from backend.mapper import run_mapping
 
@@ -50,7 +51,9 @@ async def get_columns(file: UploadFile = File(...)):
 @app.post("/map")
 async def map_products(
     file_a: UploadFile = File(...),
-    file_b: UploadFile = File(...)
+    file_b: UploadFile = File(...),
+    mapping_config: str = Form(...),
+    export_columns: str = Form(...)
 ):
 
     content_a = await file_a.read()
@@ -59,6 +62,16 @@ async def map_products(
     df_a = pd.read_excel(io.BytesIO(content_a))
     df_b = pd.read_excel(io.BytesIO(content_b))
 
-    result_df = run_mapping(df_a, df_b)
+    mapping_config = json.loads(mapping_config)
+
+    export_columns = json.loads(export_columns)
+
+    # IMPORTANT
+    result_df = run_mapping(
+        df_a,
+        df_b,
+        mapping_config,
+        export_columns
+    )
 
     return result_df.to_dict("records")
