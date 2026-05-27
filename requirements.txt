@@ -1,6 +1,214 @@
-fastapi
-uvicorn
-pandas
-openpyxl
-rapidfuzz
-python-multipart
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Product Mapping Tool</title>
+
+    <!-- AG GRID v30 (stable API) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@30.2.1/styles/ag-grid.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@30.2.1/styles/ag-theme-alpine.css" />
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@30.2.1/dist/ag-grid-community.min.noStyle.js"></script>
+
+    <!-- SheetJS for XLSX export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 20px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f3f4f6; color: #1f2937;
+        }
+        h1 { margin-bottom: 24px; color: #111827; }
+        h2 { margin-top: 0; margin-bottom: 16px; font-size: 18px; }
+        h3 { margin: 12px 0 8px; font-size: 15px; color: #374151; }
+
+        .section {
+            background: white; border-radius: 10px;
+            padding: 20px; margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .row {
+            display: flex; gap: 12px; align-items: center;
+            margin-bottom: 12px; flex-wrap: wrap;
+        }
+        input[type="file"] { padding: 8px; }
+        select, input[type="number"] {
+            padding: 8px 10px; border-radius: 6px;
+            border: 1px solid #ccc; min-width: 200px; font-size: 14px;
+        }
+        button {
+            border: none; padding: 10px 16px; border-radius: 6px;
+            cursor: pointer; font-weight: bold; font-size: 14px;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.85; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .primary { background: #2563eb; color: white; }
+        .success { background: #16a34a; color: white; }
+        .danger  { background: #dc2626; color: white; }
+        .secondary { background: #6b7280; color: white; }
+
+        .mapping-row {
+            display: flex; gap: 10px; align-items: center;
+            padding: 12px; border: 1px solid #e5e7eb;
+            border-radius: 8px; background: #fafafa;
+            margin-bottom: 10px; flex-wrap: wrap;
+        }
+        .mapping-row label {
+            font-size: 13px; color: #6b7280;
+            font-weight: 600; min-width: 60px;
+        }
+        .mapping-row .arrow {
+            font-size: 20px; color: #9ca3af; padding: 0 4px;
+        }
+        .mapping-row .weight-input { width: 80px; min-width: 80px; }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 8px; margin-top: 8px;
+        }
+        .checkbox-item {
+            background: #f9fafb; padding: 8px 10px;
+            border-radius: 6px; border: 1px solid #e5e7eb;
+            font-size: 14px; display: flex;
+            align-items: center; gap: 6px; cursor: pointer;
+        }
+        .checkbox-item:hover { background: #eff6ff; border-color: #bfdbfe; }
+
+        .weight-info {
+            display: flex; align-items: center; gap: 16px;
+            margin-top: 12px; padding: 10px 14px;
+            background: #f9fafb; border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        .weight-warning { color: #dc2626; font-weight: bold; font-size: 14px; }
+        .weight-ok { color: #16a34a; font-weight: bold; font-size: 14px; }
+
+        .progress-container {
+            width: 100%; background: #e5e7eb;
+            border-radius: 8px; overflow: hidden;
+            height: 24px; margin: 10px 0;
+            display: none; position: relative;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #2563eb, #3b82f6);
+            border-radius: 8px; transition: width 0.3s ease; width: 0%;
+        }
+        .progress-bar.indeterminate {
+            width: 30%;
+            animation: indeterminate 1.5s infinite ease-in-out;
+        }
+        @keyframes indeterminate {
+            0%   { margin-left: 0%; }
+            50%  { margin-left: 70%; }
+            100% { margin-left: 0%; }
+        }
+        .progress-text {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 600; color: #1f2937;
+            pointer-events: none;
+        }
+
+        #statusText { margin-top: 12px; font-weight: bold; font-size: 14px; color: #374151; }
+        #mappingGrid { width: 100%; height: 600px; }
+
+        .info-box {
+            background: #eff6ff; border: 1px solid #bfdbfe;
+            padding: 10px 14px; border-radius: 8px;
+            margin-top: 10px; font-size: 13px; color: #1e40af;
+        }
+        .file-status {
+            font-size: 13px; color: #16a34a;
+            font-weight: 600; margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Product Mapping Tool</h1>
+
+    <!-- 1. FILE UPLOAD -->
+    <div class="section">
+        <h2>1. Upload Files</h2>
+        <div class="row">
+            <div>
+                <label><strong>Source File (df_a)</strong></label><br /><br />
+                <input type="file" id="fileA" accept=".xlsx,.xls,.csv" />
+                <div id="fileAStatus" class="file-status"></div>
+            </div>
+            <div>
+                <label><strong>Target File (df_b)</strong></label><br /><br />
+                <input type="file" id="fileB" accept=".xlsx,.xls,.csv" />
+                <div id="fileBStatus" class="file-status"></div>
+            </div>
+        </div>
+        <div id="fileProgress" class="progress-container">
+            <div id="fileProgressBar" class="progress-bar indeterminate"></div>
+            <div class="progress-text" id="fileProgressText">Loading columns...</div>
+        </div>
+        <div class="info-box">Supported formats: .xlsx, .xls, .csv</div>
+    </div>
+
+    <!-- 2. MAPPING COLUMNS -->
+    <div class="section">
+        <h2>2. Mapping Columns</h2>
+        <p style="font-size:14px; color:#6b7280; margin-bottom:14px;">
+            Select column pairs to compare. Left = <strong>comp_table</strong> (from df_a), Right = column from df_b.
+        </p>
+        <div id="mappingContainer"></div>
+        <br />
+        <button id="addMapping" class="primary">+ Add Mapping Pair</button>
+        <div class="weight-info">
+            <span><strong>Total Weight:</strong> <span id="weightTotal">0</span></span>
+            <span id="weightWarning"></span>
+        </div>
+        <br />
+        <div class="row">
+            <div>
+                <label><strong>Threshold</strong></label><br /><br />
+                <input type="number" id="threshold" value="90" min="0" max="100" step="1" />
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. EXPORT COLUMNS -->
+    <div class="section">
+        <h2>3. Export / Preview Columns</h2>
+        <p style="font-size:14px; color:#6b7280; margin-bottom:10px;">
+            Select additional columns to include in the mapping preview and export file.
+        </p>
+        <h3>Source Columns (df_a)</h3>
+        <div id="sourceColumns" class="checkbox-grid"></div>
+        <br />
+        <h3>Target Columns (df_b)</h3>
+        <div id="targetColumns" class="checkbox-grid"></div>
+    </div>
+
+    <!-- 4. ACTIONS -->
+    <div class="section">
+        <h2>4. Actions</h2>
+        <div class="row">
+            <button id="runMapping" class="success">Run Mapping</button>
+            <button id="exportExcel" class="secondary">Export XLSX</button>
+        </div>
+        <div id="mappingProgress" class="progress-container">
+            <div id="mappingProgressBar" class="progress-bar"></div>
+            <div class="progress-text" id="mappingProgressText">0%</div>
+        </div>
+        <div id="statusText"></div>
+    </div>
+
+    <!-- 5. PREVIEW GRID -->
+    <div class="section">
+        <h2>5. Mapping Preview</h2>
+        <div id="mappingGrid" class="ag-theme-alpine"></div>
+    </div>
+
+    <script src="./app.js"></script>
+</body>
+</html>
