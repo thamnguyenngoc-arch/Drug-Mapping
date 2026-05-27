@@ -17,6 +17,7 @@ const targetColumnsDiv = document.getElementById("targetColumns");
 const mappingContainer = document.getElementById("mappingContainer");
 
 const addMappingBtn = document.getElementById("addMapping");
+console.log(addMappingBtn);
 
 const runMappingBtn = document.getElementById("runMapping");
 
@@ -68,12 +69,13 @@ const gridOptions = {
 
 };
 
-agGrid.createGrid(
+const gridDiv = document.getElementById(
+    "mappingGrid"
+);
 
-    document.getElementById("mappingGrid"),
-
+new agGrid.Grid(
+    gridDiv,
     gridOptions
-
 );
 
 // =========================
@@ -263,9 +265,26 @@ function createOptions(columns) {
 
 function addMappingRow() {
 
+    // =========================
+    // VALIDATE COLUMNS
+    // =========================
+
+    if (
+        sourceColumns.length === 0 ||
+        targetColumns.length === 0
+    ) {
+
+        alert(
+            "Please upload both files first"
+        );
+
+        return;
+    }
+
     const row = document.createElement("div");
 
-    row.className = "row mapping-row";
+    row.className =
+        "row mapping-row";
 
     row.innerHTML = `
 
@@ -290,8 +309,13 @@ function addMappingRow() {
             step="0.01"
         />
 
-        <button class="remove-btn danger">
+        <button
+            type="button"
+            class="remove-btn danger"
+        >
+
             Remove
+
         </button>
 
     `;
@@ -299,7 +323,7 @@ function addMappingRow() {
     mappingContainer.appendChild(row);
 
     // =========================
-    // REMOVE BUTTON
+    // REMOVE ROW
     // =========================
 
     row.querySelector(".remove-btn")
