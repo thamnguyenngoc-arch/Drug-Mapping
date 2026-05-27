@@ -98,86 +98,25 @@ document.addEventListener("input", (e) => {
 // AG GRID
 // ====================================
 
-const columnDefs = [
-
-  {
-    field: "source_name",
-    headerName: "Source Product",
-    flex: 2,
-  },
-
-  {
-    field: "matched_name",
-    headerName: "Matched Product",
-    flex: 2,
-  },
-
-  {
-    field: "score",
-    headerName: "Score",
-    width: 120,
-
-    sortable: true,
-
-    cellStyle: params => {
-
-      const score = params.value;
-
-      if (score >= 95) {
-
-        return {
-          backgroundColor: "#dcfce7",
-          fontWeight: "bold"
-        };
-
-      }
-
-      if (score >= 80) {
-
-        return {
-          backgroundColor: "#fef9c3"
-        };
-
-      }
-
-      return {
-        backgroundColor: "#fee2e2"
-      };
-
-    }
-  },
-
-  {
-    field: "unit",
-    headerName: "Unit",
-    flex: 1,
-  },
-
-  {
-    field: "status",
-    headerName: "Status",
-    flex: 1,
-  }
-
-];
-
-const rowData = [];
-
 const gridOptions = {
 
-  columnDefs,
-  rowData,
+  rowData: [],
 
-  rowSelection: "multiple",
+  rowSelection: {
+    mode: "multiRow"
+  },
 
   pagination: true,
 
   animateRows: true,
 
+  theme: "legacy",
+
   defaultColDef: {
     resizable: true,
     sortable: true,
     filter: true,
+    flex: 1
   }
 
 };
@@ -207,39 +146,11 @@ addMappingBtn.addEventListener("click", () => {
 
   row.innerHTML = `
 
-    <select class="source-column">
-
-      <option value="Market Name cleaned">
-        Market Name cleaned
-      </option>
-
-      <option value="Unit (Source)">
-        Unit (Source)
-      </option>
-
-      <option value="Packaging">
-        Packaging
-      </option>
-
-    </select>
+    <select class="source-column"></select>
 
     <span>→</span>
 
-    <select class="target-column">
-
-      <option value="product_name">
-        product_name
-      </option>
-
-      <option value="unit">
-        unit
-      </option>
-
-      <option value="volumes">
-        volumes
-      </option>
-
-    </select>
+    <select class="target-column"></select>
 
     <input
       type="number"
@@ -257,11 +168,12 @@ addMappingBtn.addEventListener("click", () => {
   updateWeightTotal();
 
 });
+
 // ====================================
 // LOAD COLUMNS
 // ====================================
 
-async function loadColumns(file, type) {
+async function loadColumns(file) {
 
   const formData = new FormData();
 
@@ -278,46 +190,10 @@ async function loadColumns(file, type) {
 }
 
 // ====================================
-// FILE UPLOAD EVENTS
+// POPULATE SOURCE COLUMNS
 // ====================================
 
-document
-  .getElementById("fileA")
-  .addEventListener(
-    "change",
-    async (e) => {
-
-      const file = e.target.files[0];
-
-      const columns =
-        await loadColumns(file, "A");
-
-      console.log("DF_A columns:", columns);
-
-      populateSourceColumns(columns);
-
-    }
-  );
-
-document
-  .getElementById("fileB")
-  .addEventListener(
-    "change",
-    async (e) => {
-
-      const file = e.target.files[0];
-
-      const columns =
-        await loadColumns(file, "B");
-
-      console.log("DF_B columns:", columns);
-
-      populateTargetColumns(columns);
-
-    }
-  );
-
-  function populateSourceColumns(columns) {
+function populateSourceColumns(columns) {
 
   const selects =
     document.querySelectorAll(
@@ -343,6 +219,10 @@ document
   });
 
 }
+
+// ====================================
+// POPULATE TARGET COLUMNS
+// ====================================
 
 function populateTargetColumns(columns) {
 
@@ -372,6 +252,165 @@ function populateTargetColumns(columns) {
 }
 
 // ====================================
+// EXPORT COLUMNS
+// ====================================
+
+function populateExportColumns(columns, type) {
+
+  const container =
+    type === "source"
+      ? document.getElementById("sourceExportColumns")
+      : document.getElementById("targetExportColumns");
+
+  container.innerHTML = "";
+
+  columns.forEach(col => {
+
+    const div =
+      document.createElement("div");
+
+    div.innerHTML = `
+
+      <label>
+
+        <input
+          type="checkbox"
+          class="export-checkbox"
+          data-type="${type}"
+          value="${col}"
+          checked
+        />
+
+        ${col}
+
+      </label>
+
+    `;
+
+    container.appendChild(div);
+
+  });
+
+}
+
+// ====================================
+// FILE UPLOAD EVENTS
+// ====================================
+
+document
+  .getElementById("fileA")
+  .addEventListener(
+    "change",
+    async (e) => {
+
+      const file = e.target.files[0];
+
+      const columns =
+        await loadColumns(file);
+
+      console.log("DF_A columns:", columns);
+
+      populateSourceColumns(columns);
+
+      populateExportColumns(
+        columns,
+        "source"
+      );
+
+    }
+  );
+
+document
+  .getElementById("fileB")
+  .addEventListener(
+    "change",
+    async (e) => {
+
+      const file = e.target.files[0];
+
+      const columns =
+        await loadColumns(file);
+
+      console.log("DF_B columns:", columns);
+
+      populateTargetColumns(columns);
+
+      populateExportColumns(
+        columns,
+        "target"
+      );
+
+    }
+  );
+
+// ====================================
+// GET MAPPING CONFIG
+// ====================================
+
+function getMappingConfig() {
+
+  const rows =
+    document.querySelectorAll(".mapping-row");
+
+  const config = [];
+
+  rows.forEach(row => {
+
+    config.push({
+
+      source:
+        row.querySelector(".source-column").value,
+
+      target:
+        row.querySelector(".target-column").value,
+
+      weight: parseFloat(
+        row.querySelector(".weight-input").value
+      )
+
+    });
+
+  });
+
+  return config;
+}
+
+// ====================================
+// GET EXPORT COLUMNS
+// ====================================
+
+function getExportColumns() {
+
+  const source = [];
+  const target = [];
+
+  document
+    .querySelectorAll(".export-checkbox")
+    .forEach(cb => {
+
+      if (cb.checked) {
+
+        if (cb.dataset.type === "source") {
+
+          source.push(cb.value);
+
+        } else {
+
+          target.push(cb.value);
+
+        }
+
+      }
+
+    });
+
+  return {
+    source,
+    target
+  };
+}
+
+// ====================================
 // RUN MAPPING
 // ====================================
 
@@ -379,17 +418,9 @@ async function runMapping() {
 
   try {
 
-    // ================================
-    // VALIDATE WEIGHTS
-    // ================================
-
     if (!validateWeights()) {
       return;
     }
-
-    // ================================
-    // GET FILES
-    // ================================
 
     const fileA =
       document.getElementById("fileA").files[0];
@@ -405,20 +436,19 @@ async function runMapping() {
 
     }
 
-    // ================================
-    // BUTTON LOADING
-    // ================================
-
     const runButton =
       document.querySelector(".primary-btn");
 
     runButton.disabled = true;
 
-    runButton.innerText = "Running Mapping...";
+    runButton.innerText =
+      "Running Mapping...";
 
-    // ================================
-    // FORM DATA
-    // ================================
+    const mappingConfig =
+      getMappingConfig();
+
+    const exportColumns =
+      getExportColumns();
 
     const formData = new FormData();
 
@@ -426,13 +456,23 @@ async function runMapping() {
 
     formData.append("file_b", fileB);
 
-    // ================================
-    // API CALL
-    // ================================
+    formData.append(
+      "mapping_config",
+      JSON.stringify(mappingConfig)
+    );
+
+    formData.append(
+      "export_columns",
+      JSON.stringify(exportColumns)
+    );
+
+    console.log("RUN MAPPING CLICKED");
+
+    console.log("SENDING REQUEST /map");
 
     const response = await fetch("/map", {
-        method: "POST",
-        body: formData
+      method: "POST",
+      body: formData
     });
 
     if (!response.ok) {
@@ -444,25 +484,52 @@ async function runMapping() {
     const data =
       await response.json();
 
-    // ================================
-    // UPDATE GRID
-    // ================================
+    console.log(data);
 
-    gridApi.setGridOption("rowData", data);
+    // ====================================
+    // DYNAMIC GRID COLUMNS
+    // ====================================
 
-    // ================================
-    // UPDATE SUMMARY
-    // ================================
+    const columns =
+      Object.keys(data[0] || {});
+
+    const columnDefs =
+      columns.map(col => ({
+
+        field: col,
+
+        headerName: col,
+
+        sortable: true,
+
+        filter: true,
+
+        resizable: true,
+
+        flex: 1
+
+      }));
+
+    gridApi.setGridOption(
+      "columnDefs",
+      columnDefs
+    );
+
+    gridApi.setGridOption(
+      "rowData",
+      data
+    );
+
+    // ====================================
+    // SUMMARY
+    // ====================================
 
     updateSummary(data);
 
-    // ================================
-    // RESET BUTTON
-    // ================================
-
     runButton.disabled = false;
 
-    runButton.innerText = "Run Mapping";
+    runButton.innerText =
+      "Run Mapping";
 
   } catch (error) {
 
@@ -475,7 +542,8 @@ async function runMapping() {
 
     runButton.disabled = false;
 
-    runButton.innerText = "Run Mapping";
+    runButton.innerText =
+      "Run Mapping";
 
   }
 
