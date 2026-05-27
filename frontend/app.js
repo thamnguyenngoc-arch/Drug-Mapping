@@ -29,6 +29,12 @@ const weightTotal =
 const statusText =
   document.getElementById("statusText");
 
+const progressBar =
+  document.getElementById("progressBar");
+
+const progressPercent =
+  document.getElementById("progressPercent");
+
 let gridApi = null;
 
 // =========================
@@ -61,7 +67,10 @@ const gridDiv =
   document.getElementById("mappingGrid");
 
 gridApi =
-  agGrid.createGrid(gridDiv, gridOptions);
+  agGrid.createGrid(
+    gridDiv,
+    gridOptions
+  );
 
 // =========================
 // LOAD COLUMNS
@@ -69,25 +78,29 @@ gridApi =
 
 async function loadColumns(file) {
 
-  const formData = new FormData();
+  const formData =
+    new FormData();
 
   formData.append("file", file);
 
-  const response = await fetch(
-    "http://127.0.0.1:8000/columns",
-    {
-      method: "POST",
-      body: formData
-    }
-  );
+  const response =
+    await fetch(
+      "http://127.0.0.1:8000/columns",
+      {
+        method: "POST",
+        body: formData
+      }
+    );
 
-  const data = await response.json();
+  const data =
+    await response.json();
 
   return data.columns;
+
 }
 
 // =========================
-// POPULATE CHECKBOXES
+// POPULATE SOURCE
 // =========================
 
 function populateSourceColumns(columns) {
@@ -103,19 +116,28 @@ function populateSourceColumns(columns) {
       "checkbox-item";
 
     wrapper.innerHTML = `
+
       <input
         type="checkbox"
         class="source-export"
         value="${col}"
       />
+
       ${col}
+
     `;
 
-    sourceColumnsDiv.appendChild(wrapper);
+    sourceColumnsDiv.appendChild(
+      wrapper
+    );
 
   });
 
 }
+
+// =========================
+// POPULATE TARGET
+// =========================
 
 function populateTargetColumns(columns) {
 
@@ -130,60 +152,107 @@ function populateTargetColumns(columns) {
       "checkbox-item";
 
     wrapper.innerHTML = `
+
       <input
         type="checkbox"
         class="target-export"
         value="${col}"
       />
+
       ${col}
+
     `;
 
-    targetColumnsDiv.appendChild(wrapper);
+    targetColumnsDiv.appendChild(
+      wrapper
+    );
 
   });
 
 }
 
 // =========================
-// FILE A
+// FILE A EVENT
 // =========================
 
 fileAInput.addEventListener(
   "change",
   async (e) => {
 
-    const file = e.target.files[0];
+    const file =
+      e.target.files[0];
 
     if (!file) return;
 
-    const columns =
-      await loadColumns(file);
+    statusText.innerText =
+      "Loading source columns...";
 
-    sourceColumns = columns;
+    try {
 
-    populateSourceColumns(columns);
+      const columns =
+        await loadColumns(file);
+
+      sourceColumns =
+        columns;
+
+      populateSourceColumns(
+        columns
+      );
+
+      statusText.innerText =
+        `Loaded ${columns.length} source columns`;
+
+    } catch (err) {
+
+      console.error(err);
+
+      statusText.innerText =
+        "Failed to load source columns";
+
+    }
 
   }
 );
 
 // =========================
-// FILE B
+// FILE B EVENT
 // =========================
 
 fileBInput.addEventListener(
   "change",
   async (e) => {
 
-    const file = e.target.files[0];
+    const file =
+      e.target.files[0];
 
     if (!file) return;
 
-    const columns =
-      await loadColumns(file);
+    statusText.innerText =
+      "Loading target columns...";
 
-    targetColumns = columns;
+    try {
 
-    populateTargetColumns(columns);
+      const columns =
+        await loadColumns(file);
+
+      targetColumns =
+        columns;
+
+      populateTargetColumns(
+        columns
+      );
+
+      statusText.innerText =
+        `Loaded ${columns.length} target columns`;
+
+    } catch (err) {
+
+      console.error(err);
+
+      statusText.innerText =
+        "Failed to load target columns";
+
+    }
 
   }
 );
@@ -203,8 +272,9 @@ function updateWeightTotal() {
 
   weightInputs.forEach(input => {
 
-    total +=
-      parseFloat(input.value || 0);
+    total += parseFloat(
+      input.value || 0
+    );
 
   });
 
@@ -231,7 +301,9 @@ addMappingBtn.addEventListener(
       sourceColumns
         .map(
           col =>
-            `<option value="${col}">${col}</option>`
+            `<option value="${col}">
+              ${col}
+            </option>`
         )
         .join("");
 
@@ -239,7 +311,9 @@ addMappingBtn.addEventListener(
       targetColumns
         .map(
           col =>
-            `<option value="${col}">${col}</option>`
+            `<option value="${col}">
+              ${col}
+            </option>`
         )
         .join("");
 
@@ -270,10 +344,14 @@ addMappingBtn.addEventListener(
 
     `;
 
-    mappingContainer.appendChild(row);
+    mappingContainer.appendChild(
+      row
+    );
 
     const weightInput =
-      row.querySelector(".weight-input");
+      row.querySelector(
+        ".weight-input"
+      );
 
     weightInput.addEventListener(
       "input",
@@ -281,7 +359,9 @@ addMappingBtn.addEventListener(
     );
 
     const removeBtn =
-      row.querySelector(".remove-btn");
+      row.querySelector(
+        ".remove-btn"
+      );
 
     removeBtn.addEventListener(
       "click",
@@ -300,7 +380,7 @@ addMappingBtn.addEventListener(
 );
 
 // =========================
-// BUILD MAPPING CONFIG
+// BUILD CONFIG
 // =========================
 
 function getMappingConfig() {
@@ -340,6 +420,7 @@ function getMappingConfig() {
   });
 
   return config;
+
 }
 
 // =========================
@@ -366,6 +447,21 @@ function getExportColumns() {
     source,
     target
   };
+
+}
+
+// =========================
+// PROGRESS BAR
+// =========================
+
+function setProgress(percent) {
+
+  progressBar.style.width =
+    `${percent}%`;
+
+  progressPercent.innerText =
+    `${percent}%`;
+
 }
 
 // =========================
@@ -384,7 +480,9 @@ runMappingBtn.addEventListener(
 
     if (!fileA || !fileB) {
 
-      alert("Please upload both files");
+      alert(
+        "Please upload both files"
+      );
 
       return;
 
@@ -406,74 +504,150 @@ runMappingBtn.addEventListener(
       exportColumns
     );
 
-    statusText.innerText =
-      "Running mapping...";
+    const totalWeight =
+      mappingConfig.reduce(
+        (sum, x) =>
+          sum + Number(x.weight),
+        0
+      );
 
-    const formData =
-      new FormData();
+    if (
+      Math.abs(totalWeight - 1) > 0.01
+    ) {
 
-    formData.append("file_a", fileA);
-
-    formData.append("file_b", fileB);
-
-    formData.append(
-      "mapping_config",
-      JSON.stringify(mappingConfig)
-    );
-
-    formData.append(
-      "export_columns",
-      JSON.stringify(exportColumns)
-    );
-
-    const response = await fetch(
-      "http://127.0.0.1:8000/map",
-      {
-        method: "POST",
-        body: formData
-      }
-    );
-
-    const data =
-      await response.json();
-
-    if (!data.results) {
-
-      statusText.innerText =
-        "No result";
+      alert(
+        "Total weight should equal 1"
+      );
 
       return;
 
     }
 
-    // =========================
-    // BUILD COLUMN DEFS
-    // =========================
-
-    const firstRow =
-      data.results[0];
-
-    const columnDefs =
-      Object.keys(firstRow).map(col => {
-
-        return {
-          field: col
-        };
-
-      });
-
-    gridApi.setGridOption(
-      "columnDefs",
-      columnDefs
-    );
-
-    gridApi.setGridOption(
-      "rowData",
-      data.results
-    );
-
     statusText.innerText =
-      `Done: ${data.results.length} rows`;
+      "Preparing mapping...";
+
+    setProgress(5);
+
+    const formData =
+      new FormData();
+
+    formData.append(
+      "file_a",
+      fileA
+    );
+
+    formData.append(
+      "file_b",
+      fileB
+    );
+
+    formData.append(
+      "mapping_config",
+      JSON.stringify(
+        mappingConfig
+      )
+    );
+
+    formData.append(
+      "export_columns",
+      JSON.stringify(
+        exportColumns
+      )
+    );
+
+    try {
+
+      // fake progress animation
+
+      let currentProgress = 5;
+
+      const progressInterval =
+        setInterval(() => {
+
+          if (currentProgress < 90) {
+
+            currentProgress += 5;
+
+            setProgress(
+              currentProgress
+            );
+
+          }
+
+        }, 500);
+
+      statusText.innerText =
+        "Running mapping...";
+
+      const response =
+        await fetch(
+          "http://127.0.0.1:8000/map",
+          {
+            method: "POST",
+            body: formData
+          }
+        );
+
+      clearInterval(
+        progressInterval
+      );
+
+      setProgress(100);
+
+      const data =
+        await response.json();
+
+      if (!data.results) {
+
+        statusText.innerText =
+          "No result";
+
+        return;
+
+      }
+
+      if (
+        data.results.length === 0
+      ) {
+
+        statusText.innerText =
+          "No rows returned";
+
+        return;
+
+      }
+
+      const firstRow =
+        data.results[0];
+
+      const columnDefs =
+        Object.keys(firstRow).map(
+          col => ({
+            field: col
+          })
+        );
+
+      gridApi.setGridOption(
+        "columnDefs",
+        columnDefs
+      );
+
+      gridApi.setGridOption(
+        "rowData",
+        data.results
+      );
+
+      statusText.innerText =
+        `Done: ${data.results.length} rows`;
+
+    } catch (err) {
+
+      console.error(err);
+
+      statusText.innerText =
+        "Mapping failed";
+
+    }
 
   }
 );
