@@ -1,360 +1,467 @@
+<!-- =========================
+index.html
+========================= -->
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
 
-  <meta charset="UTF-8" />
+    <meta charset="UTF-8" />
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    />
 
-  <title>
-    Product Mapping Tool
-  </title>
+    <title>Product Mapping Tool</title>
 
-  <!-- AG GRID -->
+    <!-- =========================
+    AG GRID CSS
+    ========================= -->
 
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css"
-  />
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css"
+    />
 
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css"
-  />
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css"
+    />
 
-  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
+    <!-- =========================
+    AG GRID JS
+    ========================= -->
 
-  <!-- STYLE -->
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
 
-  <style>
+    <!-- =========================
+    STYLE
+    ========================= -->
 
-    body {
+    <style>
 
-      font-family: Arial, sans-serif;
+        * {
 
-      margin: 20px;
+            box-sizing: border-box;
 
-      background: #f5f7fa;
+        }
 
-    }
+        body {
 
-    h1 {
+            margin: 0;
 
-      margin-bottom: 20px;
+            padding: 20px;
 
-    }
+            font-family: Arial, sans-serif;
 
-    h3 {
+            background: #f3f4f6;
 
-      margin-top: 30px;
+        }
 
-      margin-bottom: 10px;
+        h1 {
 
-    }
+            margin-bottom: 24px;
 
-    .section {
+        }
 
-      background: white;
+        h2 {
 
-      padding: 20px;
+            margin-top: 0;
 
-      border-radius: 10px;
+        }
 
-      margin-bottom: 20px;
+        .section {
 
-      box-shadow:
-        0 2px 6px rgba(0,0,0,0.08);
+            background: white;
 
-    }
+            border-radius: 10px;
 
-    .upload-group {
+            padding: 20px;
 
-      display: flex;
+            margin-bottom: 20px;
 
-      gap: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 
-      flex-wrap: wrap;
+        }
 
-    }
+        .row {
 
-    .upload-box {
+            display: flex;
 
-      flex: 1;
+            gap: 12px;
 
-      min-width: 300px;
+            align-items: center;
 
-    }
+            margin-bottom: 12px;
 
-    .checkbox-grid {
+            flex-wrap: wrap;
 
-      display: grid;
+        }
 
-      grid-template-columns:
-        repeat(auto-fill, minmax(250px, 1fr));
+        input[type="file"] {
 
-      gap: 8px;
+            padding: 8px;
 
-      margin-top: 10px;
+        }
 
-    }
+        select,
+        input[type="number"] {
 
-    .checkbox-item {
+            padding: 8px;
 
-      display: flex;
+            border-radius: 6px;
 
-      align-items: center;
+            border: 1px solid #ccc;
 
-      gap: 8px;
+            min-width: 220px;
 
-      background: #f8f9fc;
+        }
 
-      padding: 6px 10px;
+        button {
 
-      border-radius: 6px;
+            border: none;
 
-    }
+            padding: 10px 16px;
 
-    .mapping-row {
+            border-radius: 6px;
 
-      display: flex;
+            cursor: pointer;
 
-      align-items: center;
+            font-weight: bold;
 
-      gap: 10px;
+        }
 
-      margin-bottom: 10px;
+        button:hover {
 
-      flex-wrap: wrap;
+            opacity: 0.9;
 
-    }
+        }
 
-    select,
-    input {
+        .primary {
 
-      padding: 8px;
+            background: #2563eb;
 
-      border-radius: 6px;
+            color: white;
 
-      border: 1px solid #ccc;
+        }
 
-    }
+        .success {
 
-    .weight-input {
+            background: #16a34a;
 
-      width: 80px;
+            color: white;
 
-    }
+        }
 
-    button {
+        .danger {
 
-      padding: 10px 16px;
+            background: #dc2626;
 
-      border: none;
+            color: white;
 
-      border-radius: 6px;
+        }
 
-      cursor: pointer;
+        .secondary {
 
-      background: #2563eb;
+            background: #6b7280;
 
-      color: white;
+            color: white;
 
-      font-weight: bold;
+        }
 
-    }
+        .checkbox-grid {
 
-    button:hover {
+            display: grid;
 
-      opacity: 0.9;
+            grid-template-columns: repeat(
+                auto-fill,
+                minmax(250px, 1fr)
+            );
 
-    }
+            gap: 10px;
 
-    .remove-btn {
+            margin-top: 12px;
 
-      background: #dc2626;
+        }
 
-    }
+        .checkbox-item {
 
-    #runMapping {
+            background: #f9fafb;
 
-      background: #16a34a;
+            padding: 8px 10px;
 
-      font-size: 16px;
+            border-radius: 6px;
 
-    }
+            border: 1px solid #e5e7eb;
 
-    #statusText {
+        }
 
-      margin-top: 10px;
+        .mapping-row {
 
-      font-weight: bold;
+            padding: 12px;
 
-    }
+            border: 1px solid #e5e7eb;
 
-    #mappingGrid {
+            border-radius: 8px;
 
-      height: 650px;
+            background: #fafafa;
 
-      width: 100%;
+        }
 
-      margin-top: 20px;
+        .weight-warning {
 
-    }
+            color: red;
 
-  </style>
+            font-weight: bold;
+
+            margin-top: 8px;
+
+        }
+
+        #statusText {
+
+            margin-top: 12px;
+
+            font-weight: bold;
+
+        }
+
+        #mappingGrid {
+
+            width: 100%;
+
+            height: 700px;
+
+        }
+
+        .info-box {
+
+            background: #eff6ff;
+
+            border: 1px solid #bfdbfe;
+
+            padding: 12px;
+
+            border-radius: 8px;
+
+            margin-top: 12px;
+
+        }
+
+    </style>
 
 </head>
 
 <body>
 
-  <h1>
-    Product Mapping Tool
-  </h1>
+    <!-- =========================
+    TITLE
+    ========================= -->
 
-  <!-- ========================= -->
-  <!-- FILE UPLOAD -->
-  <!-- ========================= -->
+    <h1>Product Mapping Tool</h1>
 
-  <div class="section">
+    <!-- =========================
+    FILE UPLOAD
+    ========================= -->
 
-    <h3>
-      Upload Files
-    </h3>
+    <div class="section">
 
-    <div class="upload-group">
+        <h2>1. Upload Files</h2>
 
-      <div class="upload-box">
+        <div class="row">
 
-        <label>
-          Source File
-        </label>
+            <div>
 
-        <br /><br />
+                <label>
+                    <strong>Source File (df_a)</strong>
+                </label>
 
-        <input
-          type="file"
-          id="fileA"
-          accept=".xlsx,.xls,.csv"
-        />
+                <br /><br />
 
-      </div>
+                <input
+                    type="file"
+                    id="fileA"
+                    accept=".xlsx,.xls,.csv"
+                />
 
-      <div class="upload-box">
+            </div>
 
-        <label>
-          Target File
-        </label>
+            <div>
 
-        <br /><br />
+                <label>
+                    <strong>Target File (df_b)</strong>
+                </label>
 
-        <input
-          type="file"
-          id="fileB"
-          accept=".xlsx,.xls,.csv"
-        />
+                <br /><br />
 
-      </div>
+                <input
+                    type="file"
+                    id="fileB"
+                    accept=".xlsx,.xls,.csv"
+                />
+
+            </div>
+
+        </div>
+
+        <div class="info-box">
+
+            Supported formats:
+            .xlsx, .xls, .csv
+
+        </div>
 
     </div>
 
-  </div>
+    <!-- =========================
+    COLUMN MAPPING
+    ========================= -->
 
-  <!-- ========================= -->
-  <!-- EXPORT COLUMNS -->
-  <!-- ========================= -->
+    <div class="section">
 
-  <div class="section">
+        <h2>2. Mapping Columns</h2>
 
-    <h3>
-      Source Export Columns
-    </h3>
+        <div id="mappingContainer"></div>
 
-    <div
-      id="sourceColumns"
-      class="checkbox-grid"
-    ></div>
+        <br />
 
-    <h3>
-      Target Export Columns
-    </h3>
+        <button
+            id="addMapping"
+            class="primary"
+        >
 
-    <div
-      id="targetColumns"
-      class="checkbox-grid"
-    ></div>
+            Add Mapping Pair
 
-  </div>
+        </button>
 
-  <!-- ========================= -->
-  <!-- COLUMN MAPPING -->
-  <!-- ========================= -->
+        <br /><br />
 
-  <div class="section">
+        <div>
 
-    <h3>
-      Column Mapping
-    </h3>
+            <strong>Total Weight:</strong>
 
-    <div id="mappingContainer"></div>
+            <span id="weightTotal">
 
-    <br />
+                0
 
-    <button id="addMapping">
-      Add Mapping
-    </button>
+            </span>
 
-    <p>
+        </div>
 
-      <strong>
-        Total Weight:
-      </strong>
+        <div
+            id="weightWarning"
+            class="weight-warning"
+        ></div>
 
-      <span id="weightTotal">
-        0
-      </span>
+        <br />
 
-    </p>
+        <div class="row">
 
-  </div>
+            <div>
 
-  <!-- ========================= -->
-  <!-- RUN -->
-  <!-- ========================= -->
+                <label>
+                    <strong>Threshold</strong>
+                </label>
 
-  <div class="section">
+                <br /><br />
 
-    <button id="runMapping">
-      Run Mapping
-    </button>
+                <input
+                    type="number"
+                    id="threshold"
+                    value="90"
+                    min="0"
+                    max="100"
+                    step="1"
+                />
 
-    <p id="statusText"></p>
+            </div>
 
-  </div>
+        </div>
 
-  <!-- ========================= -->
-  <!-- RESULT GRID -->
-  <!-- ========================= -->
+    </div>
 
-  <div class="section">
+    <!-- =========================
+    EXPORT COLUMNS
+    ========================= -->
 
-    <h3>
-      Mapping Result
-    </h3>
+    <div class="section">
 
-    <div
-      id="mappingGrid"
-      class="ag-theme-alpine"
-    ></div>
+        <h2>3. Export / Preview Columns</h2>
 
-  </div>
+        <h3>Source Columns (df_a)</h3>
 
-  <!-- APP JS -->
+        <div
+            id="sourceColumns"
+            class="checkbox-grid"
+        ></div>
 
-  <script src="app.js"></script>
+        <br />
+
+        <h3>Target Columns (df_b)</h3>
+
+        <div
+            id="targetColumns"
+            class="checkbox-grid"
+        ></div>
+
+    </div>
+
+    <!-- =========================
+    ACTION BUTTONS
+    ========================= -->
+
+    <div class="section">
+
+        <h2>4. Actions</h2>
+
+        <div class="row">
+
+            <button
+                id="runMapping"
+                class="success"
+            >
+
+                Run Mapping
+
+            </button>
+
+            <button
+                id="exportExcel"
+                class="secondary"
+            >
+
+                Export XLSX
+
+            </button>
+
+        </div>
+
+        <div id="statusText"></div>
+
+    </div>
+
+    <!-- =========================
+    PREVIEW GRID
+    ========================= -->
+
+    <div class="section">
+
+        <h2>5. Mapping Preview</h2>
+
+        <div
+            id="mappingGrid"
+            class="ag-theme-alpine"
+        ></div>
+
+    </div>
+
+    <!-- =========================
+    JS
+    ========================= -->
+
+    <script src="./app.js"></script>
 
 </body>
 

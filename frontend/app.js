@@ -2,47 +2,43 @@
 // app.js
 // =========================
 
-const fileAInput =
-  document.getElementById("fileA");
-
-const fileBInput =
-  document.getElementById("fileB");
-
-const sourceColumnsDiv =
-  document.getElementById("sourceColumns");
-
-const targetColumnsDiv =
-  document.getElementById("targetColumns");
-
-const mappingContainer =
-  document.getElementById("mappingContainer");
-
-const addMappingBtn =
-  document.getElementById("addMapping");
-
-const runMappingBtn =
-  document.getElementById("runMapping");
-
-const weightTotal =
-  document.getElementById("weightTotal");
-
-const statusText =
-  document.getElementById("statusText");
-
-const progressBar =
-  document.getElementById("progressBar");
-
-const progressPercent =
-  document.getElementById("progressPercent");
-
-let gridApi = null;
+const API_URL = "http://127.0.0.1:8000";
 
 // =========================
-// STORE COLUMNS
+// ELEMENTS
+// =========================
+
+const fileAInput = document.getElementById("fileA");
+const fileBInput = document.getElementById("fileB");
+
+const sourceColumnsDiv = document.getElementById("sourceColumns");
+const targetColumnsDiv = document.getElementById("targetColumns");
+
+const mappingContainer = document.getElementById("mappingContainer");
+
+const addMappingBtn = document.getElementById("addMapping");
+
+const runMappingBtn = document.getElementById("runMapping");
+
+const exportExcelBtn = document.getElementById("exportExcel");
+
+const weightTotalText = document.getElementById("weightTotal");
+
+const weightWarning = document.getElementById("weightWarning");
+
+const statusText = document.getElementById("statusText");
+
+const thresholdInput = document.getElementById("threshold");
+
+// =========================
+// GLOBAL DATA
 // =========================
 
 let sourceColumns = [];
+
 let targetColumns = [];
+
+let latestResult = [];
 
 // =========================
 // AG GRID
@@ -50,417 +46,433 @@ let targetColumns = [];
 
 const gridOptions = {
 
-  defaultColDef: {
-    sortable: true,
-    filter: true,
-    resizable: true,
-    floatingFilter: true
-  },
+    defaultColDef: {
 
-  rowData: [],
+        sortable: true,
 
-  columnDefs: []
+        filter: true,
+
+        floatingFilter: true,
+
+        resizable: true,
+
+        minWidth: 150
+
+    },
+
+    rowData: [],
+
+    columnDefs: [],
+
+    animateRows: true
 
 };
 
-const gridDiv =
-  document.getElementById("mappingGrid");
+agGrid.createGrid(
 
-gridApi =
-  agGrid.createGrid(
-    gridDiv,
+    document.getElementById("mappingGrid"),
+
     gridOptions
-  );
+
+);
 
 // =========================
-// LOAD COLUMNS
+// LOAD FILE COLUMNS
 // =========================
 
 async function loadColumns(file) {
 
-  const formData =
-    new FormData();
+    const formData = new FormData();
 
-  formData.append("file", file);
-
-  const response =
-    await fetch(
-      "http://127.0.0.1:8000/columns",
-      {
-        method: "POST",
-        body: formData
-      }
+    formData.append(
+        "file",
+        file
     );
 
-  const data =
-    await response.json();
+    const response = await fetch(
 
-  return data.columns;
+        `${API_URL}/columns`,
+
+        {
+
+            method: "POST",
+
+            body: formData
+
+        }
+
+    );
+
+    const data = await response.json();
+
+    return data.columns;
 
 }
 
 // =========================
-// POPULATE SOURCE
+// POPULATE CHECKBOXES
 // =========================
 
-function populateSourceColumns(columns) {
+function populateCheckboxes(
 
-  sourceColumnsDiv.innerHTML = "";
+    container,
+    columns,
+    className
 
-  columns.forEach(col => {
+) {
 
-    const wrapper =
-      document.createElement("label");
+    container.innerHTML = "";
 
-    wrapper.className =
-      "checkbox-item";
+    columns.forEach(col => {
 
-    wrapper.innerHTML = `
+        const label = document.createElement("label");
 
-      <input
-        type="checkbox"
-        class="source-export"
-        value="${col}"
-      />
+        label.className = "checkbox-item";
 
-      ${col}
+        label.innerHTML = `
 
-    `;
+            <input
+                type="checkbox"
+                class="${className}"
+                value="${col}"
+            />
 
-    sourceColumnsDiv.appendChild(
-      wrapper
-    );
+            ${col}
 
-  });
+        `;
+
+        container.appendChild(label);
+
+    });
 
 }
 
 // =========================
-// POPULATE TARGET
-// =========================
-
-function populateTargetColumns(columns) {
-
-  targetColumnsDiv.innerHTML = "";
-
-  columns.forEach(col => {
-
-    const wrapper =
-      document.createElement("label");
-
-    wrapper.className =
-      "checkbox-item";
-
-    wrapper.innerHTML = `
-
-      <input
-        type="checkbox"
-        class="target-export"
-        value="${col}"
-      />
-
-      ${col}
-
-    `;
-
-    targetColumnsDiv.appendChild(
-      wrapper
-    );
-
-  });
-
-}
-
-// =========================
-// FILE A EVENT
+// FILE A CHANGE
 // =========================
 
 fileAInput.addEventListener(
-  "change",
-  async (e) => {
 
-    const file =
-      e.target.files[0];
+    "change",
 
-    if (!file) return;
+    async (e) => {
 
-    statusText.innerText =
-      "Loading source columns...";
+        const file = e.target.files[0];
 
-    try {
+        if (!file) return;
 
-      const columns =
-        await loadColumns(file);
+        statusText.innerText =
+            "Loading source columns...";
 
-      sourceColumns =
-        columns;
+        sourceColumns = await loadColumns(file);
 
-      populateSourceColumns(
-        columns
-      );
+        populateCheckboxes(
 
-      statusText.innerText =
-        `Loaded ${columns.length} source columns`;
+            sourceColumnsDiv,
 
-    } catch (err) {
+            sourceColumns,
 
-      console.error(err);
+            "source-export"
 
-      statusText.innerText =
-        "Failed to load source columns";
+        );
+
+        if (
+            document.querySelectorAll(".mapping-row")
+                .length === 0
+        ) {
+
+            addMappingRow();
+
+        }
+
+        statusText.innerText =
+            "Source file loaded";
 
     }
 
-  }
 );
 
 // =========================
-// FILE B EVENT
+// FILE B CHANGE
 // =========================
 
 fileBInput.addEventListener(
-  "change",
-  async (e) => {
 
-    const file =
-      e.target.files[0];
+    "change",
 
-    if (!file) return;
+    async (e) => {
 
-    statusText.innerText =
-      "Loading target columns...";
+        const file = e.target.files[0];
 
-    try {
+        if (!file) return;
 
-      const columns =
-        await loadColumns(file);
+        statusText.innerText =
+            "Loading target columns...";
 
-      targetColumns =
-        columns;
+        targetColumns = await loadColumns(file);
 
-      populateTargetColumns(
-        columns
-      );
+        populateCheckboxes(
 
-      statusText.innerText =
-        `Loaded ${columns.length} target columns`;
+            targetColumnsDiv,
 
-    } catch (err) {
+            targetColumns,
 
-      console.error(err);
+            "target-export"
 
-      statusText.innerText =
-        "Failed to load target columns";
+        );
+
+        if (
+            document.querySelectorAll(".mapping-row")
+                .length === 0
+        ) {
+
+            addMappingRow();
+
+        }
+
+        statusText.innerText =
+            "Target file loaded";
 
     }
 
-  }
 );
 
 // =========================
-// UPDATE WEIGHT
+// CREATE SELECT OPTIONS
+// =========================
+
+function createOptions(columns) {
+
+    return columns.map(col => {
+
+        return `
+
+            <option value="${col}">
+                ${col}
+            </option>
+
+        `;
+
+    }).join("");
+
+}
+
+// =========================
+// ADD MAPPING ROW
+// =========================
+
+function addMappingRow() {
+
+    const row = document.createElement("div");
+
+    row.className = "row mapping-row";
+
+    row.innerHTML = `
+
+        <select class="source-select">
+
+            ${createOptions(sourceColumns)}
+
+        </select>
+
+        <select class="target-select">
+
+            ${createOptions(targetColumns)}
+
+        </select>
+
+        <input
+            type="number"
+            class="weight-input"
+            value="1"
+            min="0"
+            max="1"
+            step="0.01"
+        />
+
+        <button class="remove-btn danger">
+            Remove
+        </button>
+
+    `;
+
+    mappingContainer.appendChild(row);
+
+    // =========================
+    // REMOVE BUTTON
+    // =========================
+
+    row.querySelector(".remove-btn")
+        .addEventListener(
+
+            "click",
+
+            () => {
+
+                row.remove();
+
+                updateWeightTotal();
+
+            }
+
+        );
+
+    // =========================
+    // WEIGHT CHANGE
+    // =========================
+
+    row.querySelector(".weight-input")
+        .addEventListener(
+
+            "input",
+
+            updateWeightTotal
+
+        );
+
+    updateWeightTotal();
+
+}
+
+// =========================
+// UPDATE WEIGHT TOTAL
 // =========================
 
 function updateWeightTotal() {
 
-  const weightInputs =
-    document.querySelectorAll(
-      ".weight-input"
+    const weightInputs = document.querySelectorAll(
+        ".weight-input"
     );
 
-  let total = 0;
+    let total = 0;
 
-  weightInputs.forEach(input => {
+    weightInputs.forEach(input => {
 
-    total += parseFloat(
-      input.value || 0
+        total += parseFloat(
+            input.value || 0
+        );
+
+    });
+
+    total = Number(
+        total.toFixed(2)
     );
 
-  });
+    weightTotalText.innerText = total;
 
-  weightTotal.innerText =
-    total.toFixed(2);
+    if (total !== 1) {
+
+        weightWarning.innerText =
+            "Total weight must equal 1";
+
+    }
+
+    else {
+
+        weightWarning.innerText = "";
+
+    }
 
 }
 
 // =========================
-// ADD MAPPING
+// ADD MAPPING BUTTON
 // =========================
 
 addMappingBtn.addEventListener(
-  "click",
-  () => {
 
-    const row =
-      document.createElement("div");
+    "click",
 
-    row.className =
-      "mapping-row";
+    () => {
 
-    const sourceOptions =
-      sourceColumns
-        .map(
-          col =>
-            `<option value="${col}">
-              ${col}
-            </option>`
-        )
-        .join("");
+        if (
+            sourceColumns.length === 0 ||
+            targetColumns.length === 0
+        ) {
 
-    const targetOptions =
-      targetColumns
-        .map(
-          col =>
-            `<option value="${col}">
-              ${col}
-            </option>`
-        )
-        .join("");
+            alert(
+                "Please upload both files first"
+            );
 
-    row.innerHTML = `
+            return;
 
-      <select class="source-column">
-        ${sourceOptions}
-      </select>
+        }
 
-      <span>→</span>
+        addMappingRow();
 
-      <select class="target-column">
-        ${targetOptions}
-      </select>
+    }
 
-      <input
-        type="number"
-        class="weight-input"
-        value="0"
-        step="0.1"
-        min="0"
-        max="1"
-      />
-
-      <button class="remove-btn">
-        X
-      </button>
-
-    `;
-
-    mappingContainer.appendChild(
-      row
-    );
-
-    const weightInput =
-      row.querySelector(
-        ".weight-input"
-      );
-
-    weightInput.addEventListener(
-      "input",
-      updateWeightTotal
-    );
-
-    const removeBtn =
-      row.querySelector(
-        ".remove-btn"
-      );
-
-    removeBtn.addEventListener(
-      "click",
-      () => {
-
-        row.remove();
-
-        updateWeightTotal();
-
-      }
-    );
-
-    updateWeightTotal();
-
-  }
 );
 
 // =========================
-// BUILD CONFIG
+// GET MAPPING CONFIG
 // =========================
 
 function getMappingConfig() {
 
-  const rows =
-    document.querySelectorAll(
-      ".mapping-row"
+    const rows = document.querySelectorAll(
+        ".mapping-row"
     );
 
-  const config = [];
+    const config = [];
 
-  rows.forEach(row => {
+    rows.forEach(row => {
 
-    const source =
-      row.querySelector(
-        ".source-column"
-      ).value;
+        config.push({
 
-    const target =
-      row.querySelector(
-        ".target-column"
-      ).value;
+            source: row.querySelector(
+                ".source-select"
+            ).value,
 
-    const weight =
-      parseFloat(
-        row.querySelector(
-          ".weight-input"
-        ).value || 0
-      );
+            target: row.querySelector(
+                ".target-select"
+            ).value,
 
-    config.push({
-      source,
-      target,
-      weight
+            weight: parseFloat(
+
+                row.querySelector(
+                    ".weight-input"
+                ).value
+
+            )
+
+        });
+
     });
 
-  });
-
-  return config;
+    return config;
 
 }
 
 // =========================
-// EXPORT COLUMNS
+// GET EXPORT COLUMNS
 // =========================
 
 function getExportColumns() {
 
-  const source =
-    Array.from(
-      document.querySelectorAll(
-        ".source-export:checked"
-      )
-    ).map(x => x.value);
+    const sourceSelected = [
 
-  const target =
-    Array.from(
-      document.querySelectorAll(
-        ".target-export:checked"
-      )
-    ).map(x => x.value);
+        ...document.querySelectorAll(
+            ".source-export:checked"
+        )
 
-  return {
-    source,
-    target
-  };
+    ].map(x => x.value);
 
-}
+    const targetSelected = [
 
-// =========================
-// PROGRESS BAR
-// =========================
+        ...document.querySelectorAll(
+            ".target-export:checked"
+        )
 
-function setProgress(percent) {
+    ].map(x => x.value);
 
-  progressBar.style.width =
-    `${percent}%`;
+    return {
 
-  progressPercent.innerText =
-    `${percent}%`;
+        source: sourceSelected,
+
+        target: targetSelected
+
+    };
 
 }
 
@@ -469,185 +481,249 @@ function setProgress(percent) {
 // =========================
 
 runMappingBtn.addEventListener(
-  "click",
-  async () => {
 
-    const fileA =
-      fileAInput.files[0];
+    "click",
 
-    const fileB =
-      fileBInput.files[0];
+    async () => {
 
-    if (!fileA || !fileB) {
+        // =========================
+        // VALIDATE FILES
+        // =========================
 
-      alert(
-        "Please upload both files"
-      );
+        if (
+            !fileAInput.files[0] ||
+            !fileBInput.files[0]
+        ) {
 
-      return;
-
-    }
-
-    const mappingConfig =
-      getMappingConfig();
-
-    const exportColumns =
-      getExportColumns();
-
-    console.log(
-      "mappingConfig",
-      mappingConfig
-    );
-
-    console.log(
-      "exportColumns",
-      exportColumns
-    );
-
-    const totalWeight =
-      mappingConfig.reduce(
-        (sum, x) =>
-          sum + Number(x.weight),
-        0
-      );
-
-    if (
-      Math.abs(totalWeight - 1) > 0.01
-    ) {
-
-      alert(
-        "Total weight should equal 1"
-      );
-
-      return;
-
-    }
-
-    statusText.innerText =
-      "Preparing mapping...";
-
-    setProgress(5);
-
-    const formData =
-      new FormData();
-
-    formData.append(
-      "file_a",
-      fileA
-    );
-
-    formData.append(
-      "file_b",
-      fileB
-    );
-
-    formData.append(
-      "mapping_config",
-      JSON.stringify(
-        mappingConfig
-      )
-    );
-
-    formData.append(
-      "export_columns",
-      JSON.stringify(
-        exportColumns
-      )
-    );
-
-    try {
-
-      // fake progress animation
-
-      let currentProgress = 5;
-
-      const progressInterval =
-        setInterval(() => {
-
-          if (currentProgress < 90) {
-
-            currentProgress += 5;
-
-            setProgress(
-              currentProgress
+            alert(
+                "Please upload both files"
             );
 
-          }
+            return;
 
-        }, 500);
+        }
 
-      statusText.innerText =
-        "Running mapping...";
+        // =========================
+        // VALIDATE WEIGHT
+        // =========================
 
-      const response =
-        await fetch(
-          "http://127.0.0.1:8000/map",
-          {
-            method: "POST",
-            body: formData
-          }
+        const totalWeight = parseFloat(
+            weightTotalText.innerText
         );
 
-      clearInterval(
-        progressInterval
-      );
+        if (totalWeight !== 1) {
 
-      setProgress(100);
+            alert(
+                "Total weight must equal 1"
+            );
 
-      const data =
-        await response.json();
+            return;
 
-      if (!data.results) {
+        }
 
-        statusText.innerText =
-          "No result";
+        // =========================
+        // GET CONFIG
+        // =========================
 
-        return;
+        const mappingConfig =
+            getMappingConfig();
 
-      }
+        const exportColumns =
+            getExportColumns();
 
-      if (
-        data.results.length === 0
-      ) {
-
-        statusText.innerText =
-          "No rows returned";
-
-        return;
-
-      }
-
-      const firstRow =
-        data.results[0];
-
-      const columnDefs =
-        Object.keys(firstRow).map(
-          col => ({
-            field: col
-          })
+        const threshold = parseFloat(
+            thresholdInput.value
         );
 
-      gridApi.setGridOption(
-        "columnDefs",
-        columnDefs
-      );
+        // =========================
+        // BUILD FORM DATA
+        // =========================
 
-      gridApi.setGridOption(
-        "rowData",
-        data.results
-      );
+        const formData = new FormData();
 
-      statusText.innerText =
-        `Done: ${data.results.length} rows`;
+        formData.append(
 
-    } catch (err) {
+            "file_a",
 
-      console.error(err);
+            fileAInput.files[0]
 
-      statusText.innerText =
-        "Mapping failed";
+        );
+
+        formData.append(
+
+            "file_b",
+
+            fileBInput.files[0]
+
+        );
+
+        formData.append(
+
+            "mapping_config",
+
+            JSON.stringify(mappingConfig)
+
+        );
+
+        formData.append(
+
+            "export_columns",
+
+            JSON.stringify(exportColumns)
+
+        );
+
+        formData.append(
+
+            "threshold",
+
+            threshold
+
+        );
+
+        // =========================
+        // CALL API
+        // =========================
+
+        statusText.innerText =
+            "Running mapping...";
+
+        runMappingBtn.disabled = true;
+
+        try {
+
+            const response = await fetch(
+
+                `${API_URL}/map`,
+
+                {
+
+                    method: "POST",
+
+                    body: formData
+
+                }
+
+            );
+
+            const data = await response.json();
+
+            // =========================
+            // API ERROR
+            // =========================
+
+            if (data.error) {
+
+                alert(data.error);
+
+                return;
+
+            }
+
+            latestResult = data;
+
+            // =========================
+            // EMPTY RESULT
+            // =========================
+
+            if (!data.length) {
+
+                alert(
+                    "No result returned"
+                );
+
+                return;
+
+            }
+
+            // =========================
+            // BUILD GRID COLUMNS
+            // =========================
+
+            const columnDefs = Object.keys(
+                data[0]
+            ).map(col => {
+
+                return {
+
+                    field: col
+
+                };
+
+            });
+
+            gridOptions.api.setGridOption(
+
+                "columnDefs",
+
+                columnDefs
+
+            );
+
+            // =========================
+            // SET GRID DATA
+            // =========================
+
+            gridOptions.api.setGridOption(
+
+                "rowData",
+
+                data
+
+            );
+
+            statusText.innerText =
+
+                `Completed ${data.length} rows`;
+
+        }
+
+        catch (error) {
+
+            console.error(error);
+
+            alert(
+                "Mapping failed"
+            );
+
+        }
+
+        finally {
+
+            runMappingBtn.disabled = false;
+
+        }
 
     }
 
-  }
+);
+
+// =========================
+// EXPORT EXCEL
+// =========================
+
+exportExcelBtn.addEventListener(
+
+    "click",
+
+    () => {
+
+        if (!latestResult.length) {
+
+            alert(
+                "No mapping result"
+            );
+
+            return;
+
+        }
+
+        gridOptions.api.exportDataAsExcel({
+
+            fileName: "mapping_result.xlsx"
+
+        });
+
+    }
+
 );

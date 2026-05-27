@@ -3,56 +3,184 @@
 # =========================
 
 import re
-import pandas as pd
+import unicodedata
 
-RE_SPECIAL = re.compile(r"[^a-z0-9 ]")
-RE_SPACE = re.compile(r"\s+")
-RE_DIGIT = re.compile(r"\d")
+# =========================
+# REMOVE ACCENT
+# =========================
 
-RE_VOLUME = re.compile(
-    r"\d+(?:\.\d+)?\s?(?:ml|mg|g|kg|mcg|l|iu|ui)"
-)
+def remove_accent(text):
+
+    text = unicodedata.normalize(
+        "NFKD",
+        text
+    )
+
+    text = "".join(
+
+        c for c in text
+
+        if not unicodedata.combining(c)
+
+    )
+
+    return text
+
+# =========================
+# CLEAN SPECIAL TEXT
+# =========================
+
+def clean_special_text(text):
+
+    # remove common tags
+    text = text.replace("[ngưng bán]", " ")
+
+    text = text.replace("[ngung ban]", " ")
+
+    text = text.replace("(ngưng bán)", " ")
+
+    text = text.replace("(ngung ban)", " ")
+
+    # normalize separators
+    text = text.replace("/", " ")
+
+    text = text.replace("-", " ")
+
+    text = text.replace("_", " ")
+
+    return text
+
+# =========================
+# NORMALIZE TEXT
+# =========================
 
 def normalize(text):
 
-    if pd.isna(text):
+    # =========================
+    # NULL SAFE
+    # =========================
+
+    if text is None:
         return ""
 
-    text = str(text).lower()
+    text = str(text)
 
-    text = text.replace("[ngưng bán]", "")
+    # =========================
+    # LOWER
+    # =========================
 
-    text = RE_SPECIAL.sub(" ", text)
+    text = text.lower().strip()
 
-    text = RE_SPACE.sub(" ", text).strip()
+    # =========================
+    # CLEAN SPECIAL
+    # =========================
+
+    text = clean_special_text(
+        text
+    )
+
+    # =========================
+    # REMOVE ACCENT
+    # =========================
+
+    text = remove_accent(
+        text
+    )
+
+    # =========================
+    # KEEP ONLY:
+    # letters + numbers + spaces
+    # =========================
+
+    text = re.sub(
+
+        r"[^a-z0-9 ]",
+
+        " ",
+
+        text
+
+    )
+
+    # =========================
+    # REMOVE MULTI SPACES
+    # =========================
+
+    text = re.sub(
+
+        r"\s+",
+
+        " ",
+
+        text
+
+    )
+
+    # =========================
+    # FINAL STRIP
+    # =========================
+
+    text = text.strip()
 
     return text
 
-def extract_volume(text):
+# =========================
+# SAFE FLOAT
+# =========================
 
-    text = normalize(text)
+def safe_float(value):
 
-    matches = RE_VOLUME.findall(text)
+    try:
 
-    return " ".join(matches)
+        return float(value)
 
-def remove_volume(text):
+    except:
 
-    text = normalize(text)
+        return 0.0
 
-    text = RE_VOLUME.sub(" ", text)
+# =========================
+# SAFE STRING
+# =========================
 
-    text = RE_SPACE.sub(" ", text).strip()
+def safe_string(value):
 
-    return text
+    if value is None:
+        return ""
 
-def main_token(text):
+    return str(value).strip()
 
-    tokens = text.split()
+# =========================
+# IS EMPTY
+# =========================
 
-    tokens = [
-        t for t in tokens
-        if len(t) >= 3 and not RE_DIGIT.search(t)
-    ]
+def is_empty(value):
 
-    return max(tokens, key=len) if tokens else ""
+    if value is None:
+        return True
+
+    value = str(value).strip()
+
+    return value == ""
+
+# =========================
+# NORMALIZE COLUMN NAME
+# useful for frontend/export
+# =========================
+
+def normalize_column_name(col):
+
+    col = str(col)
+
+    col = col.strip()
+
+    col = re.sub(
+
+        r"\s+",
+
+        "_",
+
+        col
+
+    )
+
+    return col.lower()
