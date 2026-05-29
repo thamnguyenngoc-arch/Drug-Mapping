@@ -132,6 +132,17 @@
 <body>
     <h1>Product Mapping Tool</h1>
 
+    <div class="section" style="background: #eff6ff; border: 1px solid #bfdbfe;">
+        <h2 style="margin-bottom: 10px;">Hướng dẫn sử dụng</h2>
+        <ol style="margin: 0; padding-left: 20px; font-size: 14px; color: #1e40af; line-height: 1.8;">
+            <li><strong>Upload Files:</strong> Tải lên file nguồn (Source / df_a) và file đích (Target / df_b). Hỗ trợ định dạng .xlsx, .xls, .csv.</li>
+            <li><strong>Mapping Columns:</strong> Thêm các cặp cột để so sánh giữa 2 file. Mỗi cặp cần gán trọng số (weight), tổng các weight phải bằng 1.0. Thiết lập Threshold (mặc định 70) để phân loại Match/Unmatch.</li>
+            <li><strong>Export / Preview Columns:</strong> Chọn các cột muốn hiển thị trong kết quả preview và file export. Chỉ các cột được chọn ở đây cùng với cột <em>score</em> và <em>predict</em> sẽ xuất hiện trong kết quả.</li>
+            <li><strong>Run Mapping:</strong> Nhấn "Run Mapping" để chạy. Kết quả hiển thị trong bảng preview bên dưới, có thể sắp xếp theo cột score.</li>
+            <li><strong>Export:</strong> Nhấn "Export XLSX" để tải kết quả về file Excel.</li>
+        </ol>
+    </div>
+
     <!-- 1. FILE UPLOAD -->
     <div class="section">
         <h2>1. Upload Files</h2>
@@ -171,7 +182,7 @@
         <div class="row">
             <div>
                 <label><strong>Threshold</strong></label><br /><br />
-                <input type="number" id="threshold" value="90" min="0" max="100" step="1" />
+                <input type="number" id="threshold" value="70" min="0" max="100" step="1" />
             </div>
         </div>
     </div>

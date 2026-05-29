@@ -152,22 +152,6 @@ def build_result_row(
         else:
             result_row[f"target__{col}"] = ""
 
-    # Compare columns (from mapping config)
-    for mapping in mapping_config:
-        source_col = mapping["source"]
-        target_col = mapping["target"]
-
-        result_row[f"compare_source__{source_col}"] = row_a.get(source_col, "")
-
-        if best_row:
-            result_row[f"compare_target__{target_col}"] = best_row.get(target_col, "")
-        else:
-            result_row[f"compare_target__{target_col}"] = ""
-
-    # Detail scores
-    for k, v in detail_scores.items():
-        result_row[f"detail_score__{k}"] = v
-
     # Final score
     result_row["score"] = round(best_score, 2)
 
@@ -289,3 +273,4 @@ def run_mapping_stream(df_a, df_b, mapping_config, export_columns, threshold):
         "type": "complete",
         "data": result_df.to_dict(orient="records")
     }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

@@ -345,6 +345,10 @@ function displayResults(data) {
         var def = { field: col, headerName: col };
 
         if (col === "score") {
+            def.sort = "desc";
+            def.valueGetter = function(params) {
+                return parseFloat(params.data.score);
+            };
             def.cellStyle = (function(tv) {
                 return function(params) {
                     var val = parseFloat(params.value);
